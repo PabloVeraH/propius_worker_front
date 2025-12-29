@@ -9,9 +9,17 @@ import { useProperties } from '@/hooks/useProperties';
 import { Property } from '@/types/property';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { useAuth } from '@/context/AuthContext';
+import { useCommunity } from '@/context/CommunityContext';
 
 export default function PropertiesPage() {
   const { properties, isLoading, deleteProperty } = useProperties();
+  const { user } = useAuth();
+  const { activeCommunityId } = useCommunity();
+
+  const isAdminOfCurrentCommunity = user?.adminCommunities?.some(
+    (c: any) => c.id === activeCommunityId
+  );
 
   const columns: ColumnDef<Property>[] = [
     {
@@ -89,12 +97,14 @@ export default function PropertiesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Propiedades</h1>
-        <Link href="/properties/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Nueva Propiedad
-          </Button>
-        </Link>
+        {isAdminOfCurrentCommunity && (
+          <Link href="/properties/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Nueva Propiedad
+            </Button>
+          </Link>
+        )}
       </div>
 
       {isLoading ? (

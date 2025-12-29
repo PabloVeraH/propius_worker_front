@@ -11,7 +11,8 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  Users
+  Users,
+  Package
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { clsx } from 'clsx';
@@ -22,6 +23,7 @@ const navigation = [
   { name: 'Gastos', href: '/expenses', icon: Receipt },
   { name: 'Estados de Cuenta', href: '/statements', icon: FileText },
   { name: 'Mensajes', href: '/messages', icon: MessageSquare },
+  { name: 'Envíos', href: '/consignments', icon: Package },
   { name: 'Usuarios', href: '/users', icon: Users },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ];

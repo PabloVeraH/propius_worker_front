@@ -31,23 +31,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // const { data } = await api.get<User>('/auth/me');
           // setUser(data);
 
-          // Mock user for now if API is not ready
-          setUser({
-            id: '1',
-            name: 'Admin User',
-            email: 'admin@example.com',
-            isAdmin: true,
-            isAdminCommunity: true,
-            isWorker: false,
-            isOwner: false,
-            isTenant: false,
-            role: 'ADMIN',
-            adminCommunities: [],
-            workerCommunities: [],
-            communities: [],
-            ownedProperties: [],
-            rentedProperties: [],
-          });
+          // Try to get user from localStorage first
+          const savedUser = localStorage.getItem('user');
+          if (savedUser) {
+            setUser(JSON.parse(savedUser));
+          } else {
+            // Fallback to mock if no saved user found (development only)
+            setUser({
+              id: '1',
+              name: 'Admin User',
+              email: 'admin@example.com',
+              isAdmin: true,
+              isAdminCommunity: true,
+              isWorker: false,
+              isOwner: false,
+              isTenant: false,
+              role: 'ADMIN',
+              adminCommunities: [],
+              workerCommunities: [],
+              communities: [],
+              ownedProperties: [],
+              rentedProperties: [],
+            });
+          }
         } catch (error) {
           console.error('Auth check failed', error);
           Cookies.remove('token');
@@ -98,6 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('Setting user state:', user);
       setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
 
       toast.success('Inicio de sesión exitoso');
 
@@ -132,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Cookies.remove('token');
     Cookies.remove('refreshToken');
     Cookies.remove('activeCommunityId');
+    localStorage.removeItem('user');
     setUser(null);
     router.push('/login');
     toast.success('Sesión cerrada');
