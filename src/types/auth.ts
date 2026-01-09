@@ -1,6 +1,7 @@
 export interface CommunitySummary {
   id: string;
   name: string;
+  role?: 'admin' | 'worker';
 }
 
 export interface User {

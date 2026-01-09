@@ -20,15 +20,29 @@ export default function SelectCommunityPage() {
     }
 
     if (user) {
-      // Combine admin and worker communities, removing duplicates if any
-      const communities = [
-        ...(user.adminCommunities || []),
-        ...(user.workerCommunities || [])
-      ];
+      // Combine admin and worker communities with role information
+      const adminCommunitiesWithRole = (user.adminCommunities || []).map(c => ({
+        ...c,
+        role: 'admin' as const
+      }));
 
-      // Deduplicate by ID
-      const uniqueCommunities = Array.from(new Map(communities.map(c => [c.id, c])).values());
+      const workerCommunitiesWithRole = (user.workerCommunities || []).map(c => ({
+        ...c,
+        role: 'worker' as const
+      }));
 
+      const communities = [...adminCommunitiesWithRole, ...workerCommunitiesWithRole];
+
+      // Deduplicate by ID, preferring admin role if user has both roles
+      const communityMap = new Map<string, CommunitySummary>();
+      communities.forEach(c => {
+        const existing = communityMap.get(c.id);
+        if (!existing || (existing.role === 'worker' && c.role === 'admin')) {
+          communityMap.set(c.id, c);
+        }
+      });
+
+      const uniqueCommunities = Array.from(communityMap.values());
       setAvailableCommunities(uniqueCommunities);
 
       // If only 1 community, auto-select and redirect (safety check, though login should handle this)
@@ -82,6 +96,16 @@ export default function SelectCommunityPage() {
                   </div>
                   <div className="ml-4 text-left">
                     <p className="text-sm font-medium text-gray-900">{community.name}</p>
+                    {community.role && (
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${community.role === 'admin'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                          }`}>
+                          {community.role === 'admin' ? 'Admin' : 'Trabajador'}
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
                 <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-primary-500" />
