@@ -5,22 +5,19 @@ import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 // Mock data
+// Mock data (updated to match new structure)
 const MOCK_EXPENSES: Expense[] = [
   {
     id: '1',
     communityId: '1',
-    description: 'Mantenimiento Ascensor',
-    amount: 500,
+    expenseId: 'master-1',
+    allocatedAmount: 500,
     date: '2025-12-01',
-    category: 'MAINTENANCE',
-  },
-  {
-    id: '2',
-    communityId: '1',
-    description: 'Servicio de Agua',
-    amount: 1200,
-    date: '2025-12-05',
-    category: 'UTILITIES',
+    masterExpense: {
+      id: 'master-1',
+      description: 'Mantenimiento Ascensor',
+      category: 'MAINTENANCE'
+    }
   },
 ];
 
@@ -32,10 +29,19 @@ export function useExpenses() {
     queryKey: ['expenses', activeCommunityId],
     queryFn: async () => {
       if (!activeCommunityId) return [];
-      const { data } = await api.get<Expense[]>(`/community-expenses`);
+      const { data } = await api.get<Expense[]>(`/community-expenses/community/${activeCommunityId}`);
       return data;
     },
     enabled: !!activeCommunityId,
+  });
+
+  const masterExpensesQuery = useQuery({
+    queryKey: ['master-expenses'],
+    queryFn: async () => {
+      const { data } = await api.get<{ data: any[] } | any[]>('/expenses'); // Handle potential wrapper
+      const rawData = (data as any).data || data;
+      return Array.isArray(rawData) ? rawData : [];
+    },
   });
 
   const createExpenseMutation = useMutation({
@@ -67,7 +73,8 @@ export function useExpenses() {
 
   return {
     expenses: expensesQuery.data || [],
-    isLoading: expensesQuery.isLoading,
+    masterExpenses: masterExpensesQuery.data || [],
+    isLoading: expensesQuery.isLoading || masterExpensesQuery.isLoading,
     createExpense: createExpenseMutation.mutateAsync,
     deleteExpense: deleteExpenseMutation.mutateAsync,
   };

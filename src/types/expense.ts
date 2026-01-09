@@ -1,20 +1,24 @@
+export interface MasterExpense {
+  id: string;
+  description: string;
+  category: string;
+  amount?: number; // Base amount?
+}
+
 export interface Expense {
   id: string;
   communityId: string;
-  description: string;
-  amount: number;
+  expenseId: string; // Link to master expense
+  masterExpense?: MasterExpense; // Joined data
+  allocatedAmount: number;
   date: string; // ISO Date
-  category: 'MAINTENANCE' | 'UTILITIES' | 'SERVICES' | 'INSURANCE' | 'OTHER';
-  propertyId?: string; // If assigned to specific property
+  // description/category might come from masterExpense now
 }
 
 export interface CreateExpenseDTO {
+  expenseId: string;
   communityId: string;
-  description: string;
-  amount: number;
-  date: string;
-  category: Expense['category'];
-  propertyId?: string;
+  allocatedAmount: number;
 }
 
 export interface UpdateExpenseDTO extends Partial<CreateExpenseDTO> { }

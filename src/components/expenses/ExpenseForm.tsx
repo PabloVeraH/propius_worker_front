@@ -9,24 +9,20 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { useExpenses } from '@/hooks/useExpenses';
-import { useProperties } from '@/hooks/useProperties';
 import { CreateExpenseDTO } from '@/types/expense';
 import { useCommunity } from '@/context/CommunityContext';
+import toast from 'react-hot-toast';
 
 const expenseSchema = z.object({
-  description: z.string().min(1, 'La descripción es requerida'),
-  amount: z.number().min(1, 'El monto debe ser mayor a 0'),
-  date: z.string().min(1, 'La fecha es requerida'),
-  category: z.enum(['MAINTENANCE', 'UTILITIES', 'SERVICES', 'INSURANCE', 'OTHER']),
-  propertyId: z.string().optional(),
+  expenseId: z.string().min(1, 'El gasto es requerido'),
+  allocatedAmount: z.number().min(1, 'El monto debe ser mayor a 0'),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 export function ExpenseForm() {
   const router = useRouter();
-  const { createExpense } = useExpenses();
-  const { properties } = useProperties();
+  const { createExpense, masterExpenses } = useExpenses();
   const { activeCommunityId } = useCommunity();
 
   const {
@@ -37,22 +33,22 @@ export function ExpenseForm() {
   } = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
-      description: '',
-      amount: 0,
-      date: new Date().toISOString().split('T')[0],
-      category: 'MAINTENANCE',
-      propertyId: '',
+      expenseId: '',
+      allocatedAmount: 0,
     },
   });
 
   const onSubmit = async (data: ExpenseFormData) => {
-    if (!activeCommunityId) return;
+    if (!activeCommunityId) {
+      toast.error('No hay comunidad activa seleccionada');
+      return;
+    }
 
     try {
       await createExpense({
-        ...data,
+        expenseId: data.expenseId,
+        allocatedAmount: data.allocatedAmount,
         communityId: activeCommunityId,
-        propertyId: data.propertyId || undefined
       });
       router.push('/expenses');
     } catch (error) {
@@ -60,73 +56,37 @@ export function ExpenseForm() {
     }
   };
 
-  const categoryOptions = [
-    { label: 'Mantenimiento', value: 'MAINTENANCE' },
-    { label: 'Servicios Públicos', value: 'UTILITIES' },
-    { label: 'Servicios', value: 'SERVICES' },
-    { label: 'Seguros', value: 'INSURANCE' },
-    { label: 'Otros', value: 'OTHER' },
-  ];
-
-  const propertyOptions = [
-    { label: 'Comunidad (Gasto General)', value: '' },
-    ...properties.map(p => ({ label: `${p.name} - ${p.ownerName}`, value: p.id }))
-  ];
+  const expenseOptions = masterExpenses.map((e: any) => ({
+    label: `${e.description} (${e.category})`,
+    value: e.id,
+  }));
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-lg shadow">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <Input
-            label="Descripción"
-            error={errors.description?.message}
-            {...register('description')}
-          />
-        </div>
-
-        <Input
-          label="Monto"
-          type="number"
-          error={errors.amount?.message}
-          {...register('amount', { valueAsNumber: true })}
-        />
-
-        <Input
-          label="Fecha"
-          type="date"
-          error={errors.date?.message}
-          {...register('date')}
-        />
+      <div className="grid grid-cols-1 gap-6">
 
         <Controller
           control={control}
-          name="category"
+          name="expenseId"
           render={({ field }) => (
             <Select
-              label="Categoría"
-              options={categoryOptions}
+              label="Gasto (Master)"
+              options={expenseOptions}
               value={field.value}
               onChange={field.onChange}
-              error={errors.category?.message}
+              error={errors.expenseId?.message}
+              placeholder="Seleccionar Gasto"
             />
           )}
         />
 
-        <div className="sm:col-span-2">
-          <Controller
-            control={control}
-            name="propertyId"
-            render={({ field }) => (
-              <Select
-                label="Asignar a Propiedad (Opcional)"
-                options={propertyOptions}
-                value={field.value || ''}
-                onChange={field.onChange}
-                error={errors.propertyId?.message}
-              />
-            )}
-          />
-        </div>
+        <Input
+          label="Monto Asignado"
+          type="number"
+          error={errors.allocatedAmount?.message}
+          {...register('allocatedAmount', { valueAsNumber: true })}
+        />
+
       </div>
 
       <div className="flex justify-end gap-3">
