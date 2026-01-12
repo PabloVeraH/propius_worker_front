@@ -56,10 +56,29 @@ export function ExpenseForm() {
     }
   };
 
-  const expenseOptions = masterExpenses.map((e: any) => ({
-    label: `${e.description} (${e.category})`,
-    value: e.id,
-  }));
+  const expenseOptions = masterExpenses.map((e: any) => {
+    let categoryLabel = e.category;
+
+    // Si la categoría es objeto, intentamos obtener su nombre o descripción
+    if (typeof e.category === 'object' && e.category !== null) {
+      categoryLabel = e.category.name || e.category.label || e.category.description || 'Categoría';
+    } else {
+      // Si es texto, usamos el mapa de traducciones comunes si existe
+      const map: Record<string, string> = {
+        MAINTENANCE: 'Mantenimiento',
+        UTILITIES: 'Servicios Públicos',
+        SERVICES: 'Servicios',
+        INSURANCE: 'Seguros',
+        OTHER: 'Otros',
+      };
+      categoryLabel = map[e.category] || e.category;
+    }
+
+    return {
+      label: `${e.description} (${categoryLabel})`,
+      value: e.id,
+    };
+  });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 bg-white p-6 rounded-lg shadow">

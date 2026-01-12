@@ -29,8 +29,10 @@ export function useExpenses() {
     queryKey: ['expenses', activeCommunityId],
     queryFn: async () => {
       if (!activeCommunityId) return [];
-      const { data } = await api.get<Expense[]>(`/community-expenses/community/${activeCommunityId}`);
-      return data;
+      const { data } = await api.get<{ data: Expense[] } | Expense[]>(`/community-expenses/community/${activeCommunityId}`);
+      // Handle potential wrapper
+      const rawData = (data as any).data || data;
+      return Array.isArray(rawData) ? rawData : [];
     },
     enabled: !!activeCommunityId,
   });

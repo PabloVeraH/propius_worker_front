@@ -15,14 +15,27 @@ export default function ExpensesPage() {
 
   const columns: ColumnDef<Expense>[] = [
     {
+      id: 'description',
       accessorKey: 'description',
       header: 'Descripción',
+      cell: ({ row }) => {
+        // Try direct field first, then nested in masterExpense/expense
+        const desc = row.original.description ||
+          row.original.masterExpense?.description ||
+          row.original.expense?.description;
+        return desc || 'N/A';
+      },
     },
     {
       accessorKey: 'category',
       header: 'Categoría',
       cell: ({ row }) => {
-        const category = row.getValue('category') as string;
+        // Try direct field first, then nested
+        const category = row.original.category ||
+          row.original.masterExpense?.category ||
+          row.original.expense?.category;
+        if (!category) return '-';
+
         const map: Record<string, string> = {
           MAINTENANCE: 'Mantenimiento',
           UTILITIES: 'Servicios Públicos',
@@ -30,9 +43,12 @@ export default function ExpensesPage() {
           INSURANCE: 'Seguros',
           OTHER: 'Otros',
         };
+        // Handle if category is object (with name property) or string
+        const catLabel = typeof category === 'string' ? category : (category as any).name || 'Categoría';
+
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {map[category] || category}
+            {map[catLabel] || catLabel}
           </span>
         );
       },
@@ -41,14 +57,53 @@ export default function ExpensesPage() {
       accessorKey: 'date',
       header: 'Fecha',
       cell: ({ row }) => {
-        return new Date(row.getValue('date')).toLocaleDateString();
+        // Try multiple date fields in order of preference
+        const dateVal = row.original.expense?.expenseDate ||  // Nested in expense
+          row.original.expenseDate ||             // Direct field
+          row.original.date ||                    // Standard field
+          row.original.createdAt;                 // Fallback
+
+        // Check if dateVal is invalid (empty object, null, undefined, or empty string)
+        if (!dateVal ||
+          (typeof dateVal === 'object' && Object.keys(dateVal).length === 0) ||
+          dateVal === '') {
+          return <span className="text-gray-400 italic">Sin fecha</span>;
+        }
+
+        try {
+          // Ensure dateVal is a string before parsing
+          if (typeof dateVal !== 'string') {
+            return <span className="text-gray-400 italic">Sin fecha</span>;
+          }
+          const parsedDate = new Date(dateVal);
+          // Check if date is valid
+          if (isNaN(parsedDate.getTime())) {
+            return <span className="text-gray-400 italic">Sin fecha</span>;
+          }
+          return parsedDate.toLocaleDateString();
+        } catch (e) {
+          return <span className="text-gray-400 italic">Sin fecha</span>;
+        }
       },
     },
     {
-      accessorKey: 'amount',
+      accessorKey: 'allocatedAmount',
       header: 'Monto',
       cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('amount'));
+        let val = row.original.allocatedAmount ?? row.original.amount;
+
+        // Handle raw Decimal object { s: 1, e: 4, d: [10000] }
+        if (typeof val === 'object' && val !== null && 'd' in val && Array.isArray((val as any).d)) {
+          const d = (val as any).d;
+          // Naive approach: use the first digits.
+          // Ideally we'd calculate digit * 10^exponent, but often d[0] is the main number if simple integer.
+          // Given the example d:[10000], e:4.
+          val = d[0];
+        }
+
+        if (val === undefined || val === null || isNaN(Number(val))) return '$ -';
+
+        const amount = parseFloat(val.toString());
         return new Intl.NumberFormat('es-CO', {
           style: 'currency',
           currency: 'COP',
@@ -114,7 +169,9 @@ export default function ExpensesPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
         </div>
       ) : (
-        <DataTable columns={columns} data={expenses} searchKey="description" searchPlaceholder="Buscar gasto..." />
+        <>
+          <DataTable columns={columns} data={expenses} searchKey="description" searchPlaceholder="Buscar gasto..." />
+        </>
       )}
     </div>
   );
