@@ -4,6 +4,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Building2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -28,29 +29,33 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       await login(data);
-    } catch (error) {
+    } catch {
       // Error handled in context
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Iniciar Sesión
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Accede a tu panel de administración
-        </p>
-      </div>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo mark */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-500 shadow-sm">
+            <Building2 className="h-6 w-6 text-white" aria-hidden="true" />
+          </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Comunidad App</h1>
+            <p className="mt-1 text-sm text-gray-500">Accede a tu panel de administración</p>
+          </div>
+        </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+        {/* Card */}
+        <div className="rounded-xl border border-gray-200 bg-white px-8 py-8 shadow-sm">
+          <form className="space-y-5" onSubmit={handleSubmit(onSubmit)} noValidate>
             <Input
               label="Email"
               type="email"
-              placeholder="admin@example.com"
+              autoComplete="email"
+              placeholder="administrador@comunidad.com"
               error={errors.email?.message}
               {...register('email')}
             />
@@ -58,20 +63,19 @@ export default function LoginPage() {
             <Input
               label="Contraseña"
               type="password"
-              placeholder="******"
+              autoComplete="current-password"
+              placeholder="Tu contraseña…"
               error={errors.password?.message}
               {...register('password')}
             />
 
-            <div>
-              <Button
-                type="submit"
-                className="w-full"
-                isLoading={isLoading}
-              >
-                Ingresar
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              className="mt-2 w-full"
+              isLoading={isLoading}
+            >
+              Ingresar
+            </Button>
           </form>
         </div>
       </div>

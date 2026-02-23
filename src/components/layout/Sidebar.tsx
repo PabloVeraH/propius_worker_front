@@ -34,11 +34,16 @@ export function Sidebar() {
 
   return (
     <div className="flex h-full w-64 flex-col bg-gray-900 text-white">
-      <div className="flex h-16 items-center justify-center border-b border-gray-800">
-        <h1 className="text-xl font-bold text-primary-400">Comunidad App</h1>
+      {/* Logo */}
+      <div className="flex h-16 items-center gap-2.5 border-b border-gray-800 px-4">
+        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-primary-500">
+          <Building2 className="h-4 w-4 text-white" aria-hidden="true" />
+        </div>
+        <span className="text-sm font-semibold tracking-wide text-white">Comunidad App</span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-2 py-4">
+      {/* Navigation */}
+      <nav className="flex-1 space-y-0.5 px-2 py-3" aria-label="Navegación principal">
         {navigation.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
@@ -46,16 +51,17 @@ export function Sidebar() {
               key={item.name}
               href={item.href}
               className={clsx(
-                'group flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
+                'group flex items-center rounded-md border-l-2 px-2 py-2 text-sm font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900',
                 isActive
-                  ? 'bg-gray-800 text-white'
-                  : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  ? 'border-primary-400 bg-gray-800 text-white'
+                  : 'border-transparent text-gray-400 hover:bg-gray-800 hover:text-white'
               )}
             >
               <item.icon
                 className={clsx(
-                  'mr-3 h-5 w-5 flex-shrink-0',
-                  isActive ? 'text-primary-400' : 'text-gray-400 group-hover:text-gray-300'
+                  'mr-3 h-4 w-4 flex-shrink-0 transition-colors',
+                  isActive ? 'text-primary-400' : 'text-gray-500 group-hover:text-gray-300'
                 )}
                 aria-hidden="true"
               />
@@ -65,13 +71,19 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-gray-800 p-4">
+      {/* Logout */}
+      <div className="border-t border-gray-800 p-2">
         <button
+          type="button"
           onClick={logout}
-          className="group flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white"
+          className={clsx(
+            'group flex w-full items-center rounded-md border-l-2 border-transparent px-2 py-2 text-sm font-medium',
+            'text-gray-400 transition-colors hover:bg-gray-800 hover:text-white',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 focus-visible:ring-offset-1 focus-visible:ring-offset-gray-900'
+          )}
         >
           <LogOut
-            className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-gray-300"
+            className="mr-3 h-4 w-4 flex-shrink-0 text-gray-500 transition-colors group-hover:text-gray-300"
             aria-hidden="true"
           />
           Cerrar Sesión
