@@ -24,7 +24,7 @@ const baseNavigation = [
   { name: 'Gastos', href: '/expenses', icon: Receipt, adminOnly: false },
   { name: 'Estados de Cuenta', href: '/statements', icon: FileText, adminOnly: false },
   { name: 'Mensajes', href: '/messages', icon: MessageSquare, adminOnly: false },
-  { name: 'Envíos', href: '/consignments', icon: Package, adminOnly: false },
+  { name: 'Consignaciones', href: '/consignments', icon: Package, adminOnly: false },
   { name: 'Usuarios', href: '/users', icon: Users, adminOnly: true },
   { name: 'Configuración', href: '/settings', icon: Settings, adminOnly: false },
 ];

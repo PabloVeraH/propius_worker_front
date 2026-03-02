@@ -1,5 +1,11 @@
 'use client';
 
+// TODO (B-06 — security): The token is currently stored in a js-cookie accessible
+// from JavaScript, which means it is vulnerable to XSS.
+// Long-term fix: migrate to HttpOnly cookies managed by Next.js Route Handlers
+// (app/api/auth/login, app/api/auth/me, app/api/auth/logout) so the token is
+// never accessible from client-side JS. See informe.txt B-06 for details.
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';

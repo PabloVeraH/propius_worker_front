@@ -9,6 +9,7 @@ import { Statement } from '@/types/statement';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { useProperties } from '@/hooks/useProperties';
+import { formatCurrency } from '@/lib/config';
 
 export default function StatementsPage() {
   const { statements, isLoading, generateStatements, isGenerating } = useStatements();
@@ -38,10 +39,7 @@ export default function StatementsPage() {
       header: 'Total',
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('totalAmount'));
-        return new Intl.NumberFormat('es-CO', {
-          style: 'currency',
-          currency: 'COP',
-        }).format(amount);
+        return formatCurrency(amount);
       },
     },
     {

@@ -79,17 +79,13 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* Notifications */}
+        {/* Notifications — badge removed until real endpoint is available */}
         <button
           type="button"
           className="relative rounded-full p-1.5 text-gray-400 transition-colors hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
           aria-label="Ver notificaciones"
         >
           <Bell className="h-5 w-5" aria-hidden="true" />
-          <span
-            className="absolute top-0.5 right-0.5 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"
-            aria-label="Tienes notificaciones nuevas"
-          />
         </button>
 
         {/* Profile Dropdown */}
@@ -115,33 +111,6 @@ export function Header() {
             leaveTo="transform opacity-0 scale-95"
           >
             <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black/10 focus:outline-none">
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    type="button"
-                    className={clsx(
-                      'block w-full px-4 py-2 text-left text-sm text-gray-700',
-                      active && 'bg-gray-50'
-                    )}
-                  >
-                    Tu Perfil
-                  </button>
-                )}
-              </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    type="button"
-                    className={clsx(
-                      'block w-full px-4 py-2 text-left text-sm text-gray-700',
-                      active && 'bg-gray-50'
-                    )}
-                  >
-                    Configuración
-                  </button>
-                )}
-              </Menu.Item>
-              <div className="my-1 border-t border-gray-100" />
               <Menu.Item>
                 {({ active }) => (
                   <button

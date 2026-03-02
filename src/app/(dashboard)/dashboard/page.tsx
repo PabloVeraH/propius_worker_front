@@ -3,17 +3,8 @@
 import React from 'react';
 import { useCommunity } from '@/context/CommunityContext';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { formatCurrency, formatNumber } from '@/lib/config';
 import { Building2, Receipt, MessageSquare, Users } from 'lucide-react';
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    maximumFractionDigits: 0,
-  }).format(value);
-
-const formatNumber = (value: number) =>
-  new Intl.NumberFormat('es-CO').format(value);
 
 export default function DashboardPage() {
   const { communities, activeCommunityId } = useCommunity();

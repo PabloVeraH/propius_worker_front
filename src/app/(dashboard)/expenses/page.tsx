@@ -9,6 +9,7 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { Expense } from '@/types/expense';
 import { parseDecimal } from '@/lib/utils';
 import { formatCategory } from '@/lib/formatters';
+import { formatCurrency } from '@/lib/config';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -91,10 +92,7 @@ export default function ExpensesPage() {
         const raw = row.original.allocatedAmount ?? row.original.amount;
         const amount = parseDecimal(raw, -1);
         if (amount === -1) return '$ -';
-        return new Intl.NumberFormat('es-CO', {
-          style: 'currency',
-          currency: 'COP',
-        }).format(amount);
+        return formatCurrency(amount);
       },
     },
     {
