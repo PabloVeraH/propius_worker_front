@@ -1,0 +1,304 @@
+================================================================================
+  INFORME DE PENDIENTES — worker_panel
+  Fecha: 01/03/2026
+================================================================================
+
+Este informe lista todos los problemas identificados en la revisión técnica
+que aún no han sido resueltos, organizados por prioridad.
+
+Los siguientes puntos YA fueron resueltos y NO aparecen aquí:
+  - BUG-01: Usuario administrador falso de fallback (AuthContext.tsx)
+  - BUG-02: Tokens expirados no redirigían al login (api.ts)
+  - BUG-03: Race condition en CommunityContext (activeCommunityId stale)
+  - BUG-04: Typo de endpoint /consigments centralizado en constante
+  - BUG-05: Página /users generaba 404
+  - SEC-04: Operaciones de eliminación sin confirmación (expenses, properties, consignments)
+
+================================================================================
+  PRIORIDAD ALTA
+================================================================================
+
+[A-01] BUG — handleSelectCommunity como stale closure en select-community
+  Archivo : src/app/select-community/page.tsx, líneas 49-53
+  Problema: handleSelectCommunity se invoca desde dentro de un useEffect pero
+            no está declarada en el array de dependencias. Esto viola las reglas
+            de hooks de React y puede ejecutar una versión obsoleta de la función
+            en renders concurrentes (React 19 Strict Mode).
+  Solución: Mover handleSelectCommunity dentro del useEffect, o envolverla en
+            useCallback y añadirla al array de dependencias del efecto.
+
+[A-02] SEGURIDAD — Cookie de token sin atributos de seguridad
+  Archivo : src/context/AuthContext.tsx, línea 100
+  Problema: Cookies.set('token', accessToken, { expires: 7 }) no especifica
+            'secure: true' ni 'sameSite'. En entornos HTTP el token viaja en
+            texto plano y es vulnerable a ataques CSRF.
+  Solución: Añadir { expires: 7, secure: true, sameSite: 'strict' }.
+            Nota: js-cookie en el cliente no puede configurar httpOnly. Para
+            protección completa contra XSS se recomienda migrar la gestión
+            del token a cookies HttpOnly server-side (Next.js Route Handlers).
+
+[A-03] SEGURIDAD — Objeto User completo (con flags de rol) en localStorage
+  Archivo : src/context/AuthContext.tsx, línea 107
+  Problema: El objeto user con campos isAdmin, isAdminCommunity, isWorker se
+            guarda en localStorage. Una vulnerabilidad XSS permite leer y
+            potencialmente manipular estos datos.
+  Solución: Validar los roles siempre contra el token JWT (payload firmado)
+            o contra un endpoint /auth/me del servidor, nunca contra datos
+            de localStorage que el cliente puede alterar.
+
+[A-04] BUG — Verificación de token contra el servidor comentada
+  Archivo : src/context/AuthContext.tsx, líneas 31-32
+  Problema: La llamada real a /auth/me está comentada. Al recargar la página,
+            el sistema confía ciegamente en lo que haya en localStorage sin
+            validar que el token siga siendo válido en el servidor. Si el token
+            fue revocado, el usuario sigue apareciendo como autenticado.
+  Solución: Descomentar y activar la llamada a /auth/me en checkAuth().
+            Si falla, limpiar la sesión y redirigir al login.
+
+[A-05] BUG — Sin manejo de errores en MessageList
+  Archivo : src/components/messages/MessageList.tsx
+            src/hooks/useMessages.ts, línea 55-58
+  Problema: El hook expone isLoading pero no isError. Si la petición al
+            API falla (red caída, error 500), el componente muestra
+            simplemente "No hay mensajes" sin indicar que hubo un problema.
+  Solución: Exponer isError desde useMessages y renderizar un estado de
+            error explícito en MessageList.
+
+[A-06] BUG — Sin protección contra clicks múltiples en generateStatements
+  Archivo : src/app/(dashboard)/statements/page.tsx, líneas 17-20
+  Problema: El botón "Generar Mes Actual" no tiene estado de carga ni
+            protección contra clics repetidos. Cada clic dispara una
+            nueva mutación independiente.
+  Solución: Añadir un estado isGenerating local o usar isPending de la
+            mutación de React Query para deshabilitar el botón mientras
+            la operación está en curso.
+
+[A-07] FUNCIONALIDAD — Serialización de Decimal del backend en el frontend
+  Archivos: src/hooks/useProperties.ts, líneas 8-24
+            src/app/(dashboard)/expenses/page.tsx, líneas 92-101
+            src/types/property.ts (campo squareMeters)
+  Problema: El backend serializa campos numéricos como objetos internos de
+            Decimal.js de Prisma ({ s, e, d }). El frontend los deserializa
+            con heurísticas frágiles. Si la estructura del objeto cambia,
+            los cálculos fallan silenciosamente.
+  Solución correcta: Corregir el backend para que los DTOs de respuesta
+            serialicen Decimal como número primitivo (usar .toNumber() en
+            los transformadores de Prisma o en los DTOs de NestJS).
+  Solución provisional: Crear un helper centralizado parseDecimal(val)
+            en src/lib/utils.ts y usarlo en todos los puntos de consumo.
+
+================================================================================
+  PRIORIDAD MEDIA
+================================================================================
+
+[M-01] ARQUITECTURA — Sin capa de servicios
+  Problema: Toda la lógica de llamadas HTTP está embebida directamente en los
+            queryFn/mutationFn de los hooks de React Query. No existe abstracción
+            reutilizable fuera del contexto de un hook de React.
+  Solución: Crear src/services/ con funciones puras (sin hooks) para cada
+            operación de API. Los hooks importan y llaman a estas funciones.
+  Ejemplo:
+    src/services/properties.service.ts  → getProperties(), createProperty()
+    src/hooks/useProperties.ts          → usa propertiesService.getProperties()
+
+[M-02] ARQUITECTURA — Autenticación híbrida (cookie + localStorage)
+  Problema: El token JWT va en cookie pero el objeto User completo va en
+            localStorage. Son dos fuentes de verdad. Si el token expira
+            pero localStorage tiene datos, el usuario parece autenticado
+            mientras todas las llamadas al API fallan con 401.
+  Solución: El objeto user debería obtenerse siempre del servidor (/auth/me)
+            usando el token como única fuente de verdad. localStorage puede
+            usarse solo como caché de corta duración, nunca como fuente
+            autoritativa de roles o identidad.
+
+[M-03] ARQUITECTURA — Dashboard con datos hardcodeados
+  Archivo : src/app/(dashboard)/dashboard/page.tsx, líneas 21-32
+  Problema: Las estadísticas del dashboard (Propiedades: 120, Gastos: 45000,
+            etc.) son valores fijos en el código. El usuario siempre ve datos
+            falsos.
+  Solución: Conectar a endpoints reales del API, o marcar visualmente la
+            sección como "en construcción" hasta que los endpoints estén
+            disponibles.
+
+[M-04] ARQUITECTURA — Sin Error Boundaries
+  Problema: No hay ningún ErrorBoundary en el árbol de componentes. Un error
+            en tiempo de ejecución en cualquier componente hijo derriba toda
+            la UI sin mensaje amigable al usuario.
+  Solución: Añadir un ErrorBoundary de nivel de aplicación en
+            src/app/providers.tsx y, opcionalmente, ErrorBoundaries
+            por sección en el layout del dashboard.
+
+[M-05] ARQUITECTURA — Endpoint de statements sin filtro de comunidad en URL
+  Archivo : src/hooks/useStatements.ts
+  Problema: GET /property-statements no incluye communityId en la URL ni en
+            query params. La filtración por comunidad depende exclusivamente
+            del header x-active-community-id. Si el backend no respeta este
+            header, el usuario ve statements de otras comunidades.
+  Solución: Añadir el communityId como parámetro de ruta o query param:
+            GET /property-statements?communityId={activeCommunityId}
+
+[M-06] ARQUITECTURA — setTimeout de 100ms como workaround post-login
+  Archivo : src/context/AuthContext.tsx, línea 118
+  Problema: La redirección post-login usa setTimeout(() => router.push(), 100)
+            para evitar un problema de timing entre el setState de React y la
+            navegación. Es frágil y puede fallar en dispositivos lentos.
+  Solución: Usar React.startTransition() o esperar a que el estado se
+            confirme antes de navegar. Alternativamente, mover la lógica de
+            redirección post-login al componente de la página de login, que
+            puede reaccionar al cambio de isAuthenticated.
+
+[M-07] DEUDA TÉCNICA — Código mock muerto
+  Archivos: src/hooks/useExpenses.ts, líneas 9-22   (MOCK_EXPENSES)
+            src/hooks/useProperties.ts, líneas 27-45 (MOCK_PROPERTIES)
+  Problema: Arrays de datos de prueba declarados pero nunca referenciados.
+            Son ruido en el código que confunde a nuevos desarrolladores.
+  Solución: Eliminar ambas constantes.
+
+[M-08] DEUDA TÉCNICA — console.log en código de producción
+  Archivos: src/components/layout/DashboardLayout.tsx, líneas 14 y 16
+            src/context/AuthContext.tsx, líneas 70, 81-85, 95, 105, 120, 128
+            src/app/(dashboard)/consignments/[id]/page.tsx, línea 50
+  Problema: Logs de depuración exponen información interna en producción
+            (estado de autenticación, datos de usuario, tokens).
+  Solución: Eliminar todos los console.log. Usar una librería de logging
+            que respete el entorno (p.ej. solo activa en development).
+
+[M-09] DEUDA TÉCNICA — Lógica de normalización de categorías duplicada
+  Archivos: src/app/(dashboard)/expenses/page.tsx, líneas 39-45
+            src/components/expenses/ExpenseForm.tsx
+  Problema: El mapa MAINTENANCE→Mantenimiento, UTILITIES→Servicios Públicos,
+            etc. está definido dos veces en dos archivos distintos.
+  Solución: Extraer a src/lib/formatters.ts como función formatCategory(key).
+
+[M-10] DEUDA TÉCNICA — Uso sistemático de "as any"
+  Archivos: src/components/properties/PropertyForm.tsx (líneas 50, 73, 80)
+            src/components/expenses/ExpenseForm.tsx (línea 59)
+            src/hooks/useConsignments.ts (línea 74)
+            src/hooks/useProperties.ts (líneas 56, 62)
+  Problema: Cada "as any" enmascara una desincronización real entre el tipo
+            del formulario y el DTO esperado por la API. El compilador no
+            puede detectar regresiones en estos puntos.
+  Solución: Definir tipos de DTO explícitos y alinear los tipos de los
+            formularios con ellos. Eliminar los castings.
+
+[M-11] DEUDA TÉCNICA — Importación muerta en DataTable
+  Archivo : src/components/ui/DataTable.tsx, línea 15
+  Problema: ArrowUpDown se importa de lucide-react pero nunca se usa.
+            Los headers de la tabla tienen el modelo de sorting configurado
+            (getSortedRowModel) pero no exponen ningún botón para activarlo.
+  Solución: Implementar el botón de sorting en los headers de la tabla
+            o eliminar la importación y el getSortedRowModel si no se va
+            a usar sorting.
+
+[M-12] UI — Paginación sin indicador de página actual
+  Archivo : src/components/ui/DataTable.tsx, líneas 112-129
+  Problema: Los botones Anterior/Siguiente no muestran en qué página está
+            el usuario ni cuántas páginas hay en total.
+  Solución: Añadir un texto "Página X de Y" entre los botones usando
+            table.getState().pagination.pageIndex + 1 y table.getPageCount().
+
+================================================================================
+  PRIORIDAD BAJA
+================================================================================
+
+[B-01] UI — Badge de notificaciones siempre visible sin funcionalidad
+  Archivo : src/components/layout/Header.tsx, líneas 89-93
+  Problema: El punto rojo de notificaciones está hardcodeado en el HTML.
+            Siempre aparece aunque no haya notificaciones, y el botón
+            no realiza ninguna acción al hacer clic.
+  Solución: Implementar el módulo de notificaciones (endpoint + polling
+            o websocket) o eliminar el badge hasta que esté disponible.
+
+[B-02] UI — Botones "Tu Perfil" y "Configuración" sin acción
+  Archivo : src/components/layout/Header.tsx, líneas 118-143
+  Problema: Ambos botones del dropdown de usuario no tienen onClick ni
+            href. Son elementos de UI decorativos sin funcionalidad.
+  Solución: Implementar las páginas /profile y /settings, o eliminar
+            las opciones del menú hasta que estén disponibles.
+
+[B-03] UI — Moneda inconsistente entre páginas
+  Archivos: src/app/(dashboard)/dashboard/page.tsx → usa ARS (Peso Argentino)
+            src/app/(dashboard)/expenses/page.tsx  → usa COP (Peso Colombiano)
+            src/app/(dashboard)/statements/page.tsx → usa COP
+  Problema: Tres páginas, dos monedas distintas.
+  Solución: Centralizar en una constante de configuración:
+            src/lib/config.ts → export const LOCALE = 'es-CO'; CURRENCY = 'COP'
+            Y usar esa constante en todos los Intl.NumberFormat del proyecto.
+
+[B-04] UI — Nombre "Consignaciones" vs "Envíos" semánticamente incorrecto
+  Archivos: src/components/layout/Sidebar.tsx (texto del menú)
+            src/app/(dashboard)/consignments/page.tsx (título de página)
+            src/hooks/useConsignments.ts (mensajes de toast)
+  Problema: La entidad es una consignación bancaria (pago/depósito), pero
+            el texto de la UI dice "Envíos" (shipments/deliveries). El término
+            incorrecto genera confusión en usuarios del dominio.
+  Solución: Unificar el término a "Consignaciones" en todos los textos
+            visibles al usuario. [NOTA: este informe ya usa "Consignaciones"
+            en el título de la página, pero faltan el sidebar y los toasts].
+
+[B-05] DEPENDENCIAS — Paquetes instalados no utilizados
+  Problema: Las siguientes dependencias están en package.json pero no se
+            usan en ningún archivo del proyecto:
+
+    moment            → date-fns ya cubre la misma funcionalidad
+    react-big-calendar → no aparece en ningún componente
+    recharts           → referenciado solo en un comentario del dashboard
+    socket.io-client   → la integración está completamente comentada
+    next-pwa           → next.config.ts está vacío, PWA no configurado
+
+  Solución: Ejecutar `npm uninstall <paquete>` para cada uno que no se
+            vaya a usar. Si se planea implementar alguno (recharts para
+            el dashboard, socket.io para mensajes en tiempo real, next-pwa),
+            documentarlo como tarea pendiente explícita.
+
+[B-06] SEGURIDAD — Sin validación de token server-side en /auth/me
+  (Relacionado con A-04, pero aplica también aquí como mejora de seguridad
+  más profunda)
+  Problema: Aunque se active /auth/me, el token se valida en el cliente
+            mediante cookies accesibles por JavaScript (no httpOnly).
+            Un ataque XSS puede robar el token.
+  Solución a largo plazo: Migrar la autenticación a cookies HttpOnly
+            gestionadas desde Next.js Route Handlers o Middleware, de forma
+            que el token nunca sea accesible desde JavaScript del cliente.
+
+================================================================================
+  RESUMEN DE CONTEO
+================================================================================
+
+  Prioridad Alta   : 7 puntos  (A-01 a A-07)
+  Prioridad Media  : 12 puntos (M-01 a M-12)
+  Prioridad Baja   : 6 puntos  (B-01 a B-06)
+  ─────────────────────────────────────────
+  TOTAL PENDIENTES : 25 puntos
+
+================================================================================
+  RECOMENDACIÓN DE ORDEN DE ATAQUE
+================================================================================
+
+  1. A-04  Activar /auth/me (valida tokens en el servidor)
+  2. A-01  Corregir stale closure en select-community
+  3. A-02  Añadir atributos de seguridad a las cookies
+  4. A-05  Exponer isError en useMessages / MessageList
+  5. A-06  Proteger botón generateStatements contra clicks múltiples
+  6. A-07  Corregir serialización Decimal (idealmente en el backend)
+  7. A-03  Eliminar dependencia en localStorage para roles (requiere A-04)
+  8. M-07  Eliminar código mock muerto
+  9. M-08  Eliminar console.log de producción
+  10. M-09  Centralizar formatCategory()
+  11. M-03  Conectar dashboard a datos reales
+  12. M-12  Añadir indicador de página en DataTable
+  13. M-04  Añadir ErrorBoundary
+  14. B-03  Centralizar moneda/locale
+  15. B-04  Unificar texto "Consignaciones" en sidebar y toasts
+  16. B-05  Desinstalar dependencias no utilizadas
+  17. M-01  Crear capa de servicios (refactor mayor)
+  18. M-02  Unificar autenticación en una sola fuente de verdad
+  19. M-05  Filtrar statements por communityId en la URL
+  20. M-06  Eliminar setTimeout post-login
+  21. M-10  Eliminar castings "as any"
+  22. M-11  Implementar sorting en DataTable o eliminar el modelo
+  23. B-01  Implementar notificaciones reales o eliminar el badge
+  24. B-02  Implementar /profile y /settings o eliminar las opciones del menú
+  25. B-06  Migrar token a cookies HttpOnly server-side (refactor mayor)
+
+================================================================================

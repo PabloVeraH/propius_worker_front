@@ -51,9 +51,17 @@ export function useMessages() {
     },
   });
 
+  const rawData = messagesQuery.data;
+  const messages = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray((rawData as any)?.data)
+    ? (rawData as any).data
+    : [];
+
   return {
-    messages: messagesQuery.data || [],
+    messages,
     isLoading: messagesQuery.isLoading,
+    isError: messagesQuery.isError,
     createMessage: createMessageMutation.mutateAsync,
   };
 }

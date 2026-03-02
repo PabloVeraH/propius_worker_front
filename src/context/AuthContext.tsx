@@ -36,23 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (savedUser) {
             setUser(JSON.parse(savedUser));
           } else {
-            // Fallback to mock if no saved user found (development only)
-            setUser({
-              id: '1',
-              name: 'Admin User',
-              email: 'admin@example.com',
-              isAdmin: true,
-              isAdminCommunity: true,
-              isWorker: false,
-              isOwner: false,
-              isTenant: false,
-              role: 'ADMIN',
-              adminCommunities: [],
-              workerCommunities: [],
-              communities: [],
-              ownedProperties: [],
-              rentedProperties: [],
-            });
+            // No user data found — token is orphaned, clear session
+            Cookies.remove('token');
+            Cookies.remove('refreshToken');
+            Cookies.remove('activeCommunityId');
           }
         } catch (error) {
           console.error('Auth check failed', error);

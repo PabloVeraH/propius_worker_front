@@ -15,22 +15,32 @@ import {
   Package
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCommunity } from '@/context/CommunityContext';
 import { clsx } from 'clsx';
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Propiedades', href: '/properties', icon: Building2 },
-  { name: 'Gastos', href: '/expenses', icon: Receipt },
-  { name: 'Estados de Cuenta', href: '/statements', icon: FileText },
-  { name: 'Mensajes', href: '/messages', icon: MessageSquare },
-  { name: 'Envíos', href: '/consignments', icon: Package },
-  { name: 'Usuarios', href: '/users', icon: Users },
-  { name: 'Configuración', href: '/settings', icon: Settings },
+const baseNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, adminOnly: false },
+  { name: 'Propiedades', href: '/properties', icon: Building2, adminOnly: false },
+  { name: 'Gastos', href: '/expenses', icon: Receipt, adminOnly: false },
+  { name: 'Estados de Cuenta', href: '/statements', icon: FileText, adminOnly: false },
+  { name: 'Mensajes', href: '/messages', icon: MessageSquare, adminOnly: false },
+  { name: 'Envíos', href: '/consignments', icon: Package, adminOnly: false },
+  { name: 'Usuarios', href: '/users', icon: Users, adminOnly: true },
+  { name: 'Configuración', href: '/settings', icon: Settings, adminOnly: false },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const { activeCommunityId } = useCommunity();
+
+  const isAdminOfActiveCommunity = user?.adminCommunities?.some(
+    (c) => c.id === activeCommunityId
+  ) ?? false;
+
+  const navigation = baseNavigation.filter(
+    (item) => !item.adminOnly || isAdminOfActiveCommunity
+  );
 
   return (
     <div className="flex h-full w-64 flex-col bg-gray-900 text-white">

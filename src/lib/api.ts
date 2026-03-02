@@ -35,11 +35,20 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle 401 and refresh token logic here if needed
-    // For now, just reject
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Redirect to login or refresh token
-      // window.location.href = '/login';
+      originalRequest._retry = true;
+
+      // Clear all session data
+      Cookies.remove('token');
+      Cookies.remove('refreshToken');
+      Cookies.remove('activeCommunityId');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        // Only redirect if not already on the login page to avoid loops
+        if (!window.location.pathname.startsWith('/login')) {
+          window.location.href = '/login';
+        }
+      }
     }
 
     return Promise.reject(error);

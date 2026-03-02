@@ -4,6 +4,10 @@ import { Consignment, CreateConsignmentDTO, Category } from '@/types/consignment
 import { useCommunity } from '@/context/CommunityContext';
 import toast from 'react-hot-toast';
 
+// Single source of truth for the consignments endpoint.
+// The backend uses '/consigments' (one 'n'). Change here to update everywhere.
+const CONSIGNMENTS_ENDPOINT = '/consigments';
+
 export function useConsignments() {
   const { activeCommunityId } = useCommunity();
   const queryClient = useQueryClient();
@@ -13,15 +17,7 @@ export function useConsignments() {
     queryKey: ['consignments', activeCommunityId],
     queryFn: async () => {
       if (!activeCommunityId) return [];
-      // Assuming GET /consignments/community/:id or similar.
-      // If the user didn't specify, I'll try /consignments first,
-      // but usually everything is scoped.
-      // Given the POST is /consigments (typo in user prompt "consigments"?), I will use that.
-      // User said: curl -X 'POST' 'http://localhost:3000/consigments'
-      // I'll assume GET is also /consigments, maybe filtering by community header or generic list.
-      // But typically we need to filter by community.
-      // I will try getting from /consigments for now.
-      const response = await api.get<any>('/consigments');
+      const response = await api.get<any>(CONSIGNMENTS_ENDPOINT);
       const rawData = response.data?.data || response.data;
       return Array.isArray(rawData) ? rawData : [];
     },
@@ -33,7 +29,6 @@ export function useConsignments() {
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await api.get<any>('/categories');
-      // Handle { data: [...] } or [...]
       const rawData = response.data?.data || response.data;
       return Array.isArray(rawData) ? rawData : [];
     },
@@ -42,45 +37,44 @@ export function useConsignments() {
   // Create Consignment
   const createConsignmentMutation = useMutation({
     mutationFn: async (newConsignment: CreateConsignmentDTO) => {
-      // User specified /consigments (with typo?)
-      const { data } = await api.post<Consignment>('/consigments', newConsignment);
+      const { data } = await api.post<Consignment>(CONSIGNMENTS_ENDPOINT, newConsignment);
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
-      toast.success('Envío registrado exitosamente');
+      toast.success('Consignación registrada exitosamente');
     },
     onError: () => {
-      toast.error('Error al registrar el envío');
+      toast.error('Error al registrar la consignación');
     },
   });
 
   // Delete Consignment
   const deleteConsignmentMutation = useMutation({
     mutationFn: async (id: string) => {
-      await api.delete(`/consigments/${id}`);
+      await api.delete(`${CONSIGNMENTS_ENDPOINT}/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
-      toast.success('Envío eliminado exitosamente');
+      toast.success('Consignación eliminada exitosamente');
     },
     onError: () => {
-      toast.error('Error al eliminar el envío');
+      toast.error('Error al eliminar la consignación');
     },
   });
 
-  // Update Consignment (Stub for now, or assumed endpoint)
+  // Update Consignment
   const updateConsignmentMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string, data: any }) => {
-      const res = await api.patch(`/consigments/${id}`, data);
+      const res = await api.patch(`${CONSIGNMENTS_ENDPOINT}/${id}`, data);
       return res.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
-      toast.success('Envío actualizado exitosamente');
+      toast.success('Consignación actualizada exitosamente');
     },
     onError: () => {
-      toast.error('Error al actualizar el envío');
+      toast.error('Error al actualizar la consignación');
     },
   });
 
@@ -98,8 +92,7 @@ export function useConsignment(id: string) {
   const query = useQuery({
     queryKey: ['consignment', id],
     queryFn: async () => {
-      const response = await api.get<any>(`/consigments/${id}`);
-      // Handle { data: ... } or ...
+      const response = await api.get<any>(`${CONSIGNMENTS_ENDPOINT}/${id}`);
       return response.data?.data || response.data;
     },
     enabled: !!id,

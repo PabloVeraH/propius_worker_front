@@ -9,9 +9,22 @@ import { useExpenses } from '@/hooks/useExpenses';
 import { Expense } from '@/types/expense';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 
 export default function ExpensesPage() {
   const { expenses, isLoading, deleteExpense } = useExpenses();
+  const { confirm, dialogProps } = useConfirm();
+
+  const handleDelete = async (expense: Expense) => {
+    const ok = await confirm({
+      title: 'Eliminar gasto',
+      message: `¿Estás seguro de que deseas eliminar este gasto? Esta acción no se puede deshacer.`,
+    });
+    if (ok) {
+      await deleteExpense(expense.id);
+    }
+  };
 
   const columns: ColumnDef<Expense>[] = [
     {
@@ -19,7 +32,6 @@ export default function ExpensesPage() {
       accessorKey: 'description',
       header: 'Descripción',
       cell: ({ row }) => {
-        // Try direct field first, then nested in masterExpense/expense
         const desc = row.original.description ||
           row.original.masterExpense?.description ||
           row.original.expense?.description;
@@ -30,7 +42,6 @@ export default function ExpensesPage() {
       accessorKey: 'category',
       header: 'Categoría',
       cell: ({ row }) => {
-        // Try direct field first, then nested
         const category = row.original.category ||
           row.original.masterExpense?.category ||
           row.original.expense?.category;
@@ -43,7 +54,6 @@ export default function ExpensesPage() {
           INSURANCE: 'Seguros',
           OTHER: 'Otros',
         };
-        // Handle if category is object (with name property) or string
         const catLabel = typeof category === 'string' ? category : (category as any).name || 'Categoría';
 
         return (
@@ -57,13 +67,11 @@ export default function ExpensesPage() {
       accessorKey: 'date',
       header: 'Fecha',
       cell: ({ row }) => {
-        // Try multiple date fields in order of preference
-        const dateVal = row.original.expense?.expenseDate ||  // Nested in expense
-          row.original.expenseDate ||             // Direct field
-          row.original.date ||                    // Standard field
-          row.original.createdAt;                 // Fallback
+        const dateVal = row.original.expense?.expenseDate ||
+          row.original.expenseDate ||
+          row.original.date ||
+          row.original.createdAt;
 
-        // Check if dateVal is invalid (empty object, null, undefined, or empty string)
         if (!dateVal ||
           (typeof dateVal === 'object' && Object.keys(dateVal).length === 0) ||
           dateVal === '') {
@@ -71,12 +79,10 @@ export default function ExpensesPage() {
         }
 
         try {
-          // Ensure dateVal is a string before parsing
           if (typeof dateVal !== 'string') {
             return <span className="text-gray-400 italic">Sin fecha</span>;
           }
           const parsedDate = new Date(dateVal);
-          // Check if date is valid
           if (isNaN(parsedDate.getTime())) {
             return <span className="text-gray-400 italic">Sin fecha</span>;
           }
@@ -92,12 +98,8 @@ export default function ExpensesPage() {
       cell: ({ row }) => {
         let val = row.original.allocatedAmount ?? row.original.amount;
 
-        // Handle raw Decimal object { s: 1, e: 4, d: [10000] }
         if (typeof val === 'object' && val !== null && 'd' in val && Array.isArray((val as any).d)) {
           const d = (val as any).d;
-          // Naive approach: use the first digits.
-          // Ideally we'd calculate digit * 10^exponent, but often d[0] is the main number if simple integer.
-          // Given the example d:[10000], e:4.
           val = d[0];
         }
 
@@ -134,7 +136,7 @@ export default function ExpensesPage() {
                   <Menu.Item>
                     {({ active }) => (
                       <button
-                        onClick={() => deleteExpense(expense.id)}
+                        onClick={() => handleDelete(expense)}
                         className={`${active ? 'bg-gray-100 text-red-900' : 'text-red-700'
                           } flex w-full px-4 py-2 text-sm`}
                       >
@@ -169,10 +171,10 @@ export default function ExpensesPage() {
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
         </div>
       ) : (
-        <>
-          <DataTable columns={columns} data={expenses} searchKey="description" searchPlaceholder="Buscar gasto..." />
-        </>
+        <DataTable columns={columns} data={expenses} searchKey="description" searchPlaceholder="Buscar gasto..." />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

@@ -8,14 +8,27 @@ import { useConsignments } from '@/hooks/useConsignments';
 import { Consignment } from '@/types/consignment';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 
 export default function ConsignmentsPage() {
   const { consignments, isLoading, deleteConsignment } = useConsignments();
+  const { confirm, dialogProps } = useConfirm();
+
+  const handleDelete = async (consignment: Consignment) => {
+    const ok = await confirm({
+      title: 'Eliminar consignación',
+      message: '¿Estás seguro de que deseas eliminar esta consignación? Esta acción no se puede deshacer.',
+    });
+    if (ok) {
+      await deleteConsignment(consignment.id);
+    }
+  };
 
   const columns: ColumnDef<Consignment>[] = [
     {
       accessorKey: 'property.name',
-      id: 'propertyName', // Explicit ID for searching
+      id: 'propertyName',
       header: 'Propiedad',
       cell: ({ row }) => row.original.property?.name || 'Sin propiedad',
     },
@@ -50,7 +63,7 @@ export default function ConsignmentsPage() {
               variant="ghost"
               size="sm"
               className="h-8 w-8 p-0"
-              onClick={() => deleteConsignment(consignment.id)}
+              onClick={() => handleDelete(consignment)}
             >
               <Trash className="h-4 w-4 text-red-500 hover:text-red-700" />
             </Button>
@@ -63,11 +76,11 @@ export default function ConsignmentsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Envíos</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Consignaciones</h1>
         <Link href="/consignments/new">
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Nuevo Envío
+            Nueva Consignación
           </Button>
         </Link>
       </div>
@@ -84,6 +97,8 @@ export default function ConsignmentsPage() {
           searchPlaceholder="Buscar por propiedad..."
         />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

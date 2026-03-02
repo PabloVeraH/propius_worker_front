@@ -11,15 +11,28 @@ import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { useAuth } from '@/context/AuthContext';
 import { useCommunity } from '@/context/CommunityContext';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/hooks/useConfirm';
 
 export default function PropertiesPage() {
   const { properties, isLoading, deleteProperty } = useProperties();
   const { user } = useAuth();
   const { activeCommunityId } = useCommunity();
+  const { confirm, dialogProps } = useConfirm();
 
   const isAdminOfCurrentCommunity = user?.adminCommunities?.some(
     (c: any) => c.id === activeCommunityId
   );
+
+  const handleDelete = async (property: Property) => {
+    const ok = await confirm({
+      title: 'Eliminar propiedad',
+      message: `¿Estás seguro de que deseas eliminar "${property.name}"? Esta acción no se puede deshacer.`,
+    });
+    if (ok) {
+      await deleteProperty(property.id);
+    }
+  };
 
   const columns: ColumnDef<Property>[] = [
     {
@@ -75,7 +88,7 @@ export default function PropertiesPage() {
                   <Menu.Item>
                     {({ active }) => (
                       <button
-                        onClick={() => deleteProperty(property.id)}
+                        onClick={() => handleDelete(property)}
                         className={`${active ? 'bg-gray-100 text-red-900' : 'text-red-700'
                           } flex w-full px-4 py-2 text-sm`}
                       >
@@ -114,6 +127,8 @@ export default function PropertiesPage() {
       ) : (
         <DataTable columns={columns} data={properties} searchKey="name" searchPlaceholder="Buscar por nombre..." />
       )}
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

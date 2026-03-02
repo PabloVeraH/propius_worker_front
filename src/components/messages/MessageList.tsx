@@ -56,7 +56,7 @@ export function MessageList() {
 
   return (
     <div className="space-y-4">
-      {messages.map((message) => (
+      {messages.map((message: Message) => (
         <div
           key={message.id}
           className={`p-4 rounded-lg shadow border ${getBgColor(message.type)}`}
