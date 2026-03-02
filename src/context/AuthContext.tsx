@@ -27,34 +27,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = Cookies.get('token');
       if (token) {
         try {
-          // Verify token and get user info
-          // const { data } = await api.get<User>('/auth/me');
-          // setUser(data);
-
-          // Try to get user from localStorage first
-          const savedUser = localStorage.getItem('user');
-          if (savedUser) {
-            setUser(JSON.parse(savedUser));
-          } else {
-            // No user data found — token is orphaned, clear session
-            Cookies.remove('token');
-            Cookies.remove('refreshToken');
-            Cookies.remove('activeCommunityId');
-          }
+          // Verify token against the server and get up-to-date user info
+          const { data } = await api.get<User>('/auth/me');
+          setUser(data);
         } catch (error) {
-          console.error('Auth check failed', error);
+          // Token is invalid or expired — clear session and redirect
           Cookies.remove('token');
+          Cookies.remove('refreshToken');
+          Cookies.remove('activeCommunityId');
+          localStorage.removeItem('user');
+          router.push('/login');
         }
       }
       setIsLoading(false);
     };
 
     checkAuth();
-  }, []);
+  }, [router]);
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      console.log('Attempting login with:', credentials);
       const response = await api.post<any>('/auth/login', credentials);
       const rawData = response.data;
 
@@ -65,33 +57,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const refreshToken = payload.refreshToken || payload.refresh_token;
       const user = payload.user;
 
-      console.log('Processed auth payload:', {
-        hasAccessToken: !!accessToken,
-        hasUser: !!user,
-        user
-      });
-
       if (!user || !accessToken) {
-        console.error('Invalid response structure:', payload);
         throw new Error('Invalid response structure');
       }
 
       // Enforce Admin or Worker access
-      // Enforce Admin or Worker access
       if (!user.isAdmin && !user.isWorker && !user.isAdminCommunity) {
-        console.warn('Login rejected: User is not Admin or Worker', user);
         toast.error('Acceso denegado: Solo administradores o trabajadores pueden ingresar.');
         return;
       }
 
-      Cookies.set('token', accessToken, { expires: 7 });
+      // Store token with security attributes
+      Cookies.set('token', accessToken, { expires: 7, secure: true, sameSite: 'strict' });
       if (refreshToken) {
-        Cookies.set('refreshToken', refreshToken, { expires: 30 });
+        Cookies.set('refreshToken', refreshToken, { expires: 30, secure: true, sameSite: 'strict' });
       }
 
-      console.log('Setting user state:', user);
+      // Roles are validated server-side via /auth/me — no need to persist user in localStorage
       setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
 
       toast.success('Inicio de sesión exitoso');
 
@@ -102,19 +85,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       ];
       const uniqueCommunities = Array.from(new Map(communities.map((c: any) => [c.id, c])).values());
 
-      setTimeout(() => {
-        if (uniqueCommunities.length === 1) {
-          console.log('Single community found, redirecting to dashboard and setting active community');
-          Cookies.set('activeCommunityId', uniqueCommunities[0].id);
-          router.push('/dashboard');
-        } else if (uniqueCommunities.length > 1) {
-          console.log('Multiple communities found, redirecting to selection page');
-          router.push('/select-community');
-        } else {
-          console.warn('No communities found for this user');
-          toast.error('No tienes comunidades asignadas.');
-        }
-      }, 100);
+      if (uniqueCommunities.length === 1) {
+        Cookies.set('activeCommunityId', uniqueCommunities[0].id, { secure: true, sameSite: 'strict' });
+        router.push('/dashboard');
+      } else if (uniqueCommunities.length > 1) {
+        router.push('/select-community');
+      } else {
+        toast.error('No tienes comunidades asignadas.');
+      }
     } catch (error) {
       console.error('Login failed', error);
       toast.error('Error al iniciar sesión');
@@ -126,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Cookies.remove('token');
     Cookies.remove('refreshToken');
     Cookies.remove('activeCommunityId');
-    localStorage.removeItem('user');
+    localStorage.removeItem('user'); // Clean up any legacy data
     setUser(null);
     router.push('/login');
     toast.success('Sesión cerrada');

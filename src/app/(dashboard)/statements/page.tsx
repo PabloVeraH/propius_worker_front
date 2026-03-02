@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { useProperties } from '@/hooks/useProperties';
 
 export default function StatementsPage() {
-  const { statements, isLoading, generateStatements } = useStatements();
+  const { statements, isLoading, generateStatements, isGenerating } = useStatements();
   const { properties } = useProperties();
 
   const handleGenerate = async () => {
@@ -84,9 +84,9 @@ export default function StatementsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Estados de Cuenta</h1>
-        <Button onClick={handleGenerate}>
+        <Button onClick={handleGenerate} disabled={isGenerating}>
           <FileText className="mr-2 h-4 w-4" />
-          Generar Mes Actual
+          {isGenerating ? 'Generando...' : 'Generar Mes Actual'}
         </Button>
       </div>
 

@@ -55,5 +55,6 @@ export function useStatements() {
     statements: statementsQuery.data || [],
     isLoading: statementsQuery.isLoading,
     generateStatements: generateStatementsMutation.mutateAsync,
+    isGenerating: generateStatementsMutation.isPending,
   };
 }

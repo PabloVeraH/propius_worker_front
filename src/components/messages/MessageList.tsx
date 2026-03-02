@@ -8,12 +8,22 @@ import { es } from 'date-fns/locale';
 import { AlertTriangle, Bell, Info, MessageSquare } from 'lucide-react';
 
 export function MessageList() {
-  const { messages, isLoading } = useMessages();
+  const { messages, isLoading, isError } = useMessages();
 
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-500 border-t-transparent"></div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="text-center py-12 bg-white rounded-lg shadow">
+        <AlertTriangle className="mx-auto h-12 w-12 text-red-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900">Error al cargar mensajes</h3>
+        <p className="mt-1 text-sm text-gray-500">No se pudo conectar con el servidor. Intenta de nuevo más tarde.</p>
       </div>
     );
   }

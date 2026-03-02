@@ -2,26 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { Property, CreatePropertyDTO, UpdatePropertyDTO } from '@/types/property';
 import { useCommunity } from '@/context/CommunityContext';
+import { parseDecimal } from '@/lib/utils';
 import toast from 'react-hot-toast';
-
-// Helper to extract area from Decimal structure or use directly
-const getArea = (val: any): number => {
-  if (typeof val === 'number') return val;
-  if (val && typeof val === 'object' && val.d && Array.isArray(val.d)) {
-    // Simple heuristic for Decimal.js-like objects if we don't have the library
-    // data: { s: 1, e: 1, d: [ 50 ] } -> 50
-    // This is checking if it's already a number or a decimal object
-    // For now returning the first digit * 10^(e-1) if it looks simple, or just a placeholder
-    const num = Number(val.d[0]);
-    // This is a rough approximation if we don't have a decimal library.
-    // Ideally we should fix the backend to return number.
-    // However, looking at the user request: d: [50], e: 1 -> 50.
-    // d: [75], e: 1 -> 75.
-    // d: [80], e: 1 -> 80.
-    return num;
-  }
-  return 0;
-};
 
 // Mock data updated
 const MOCK_PROPERTIES: Property[] = [
@@ -65,7 +47,7 @@ export function useProperties() {
         address: item.address || item.name || '',
         ownerName: item.owner?.name || item.ownerName || 'Sin propietario',
         tenantName: item.tenant?.name || item.tenantName || (item.tenant ? item.tenant.email : '') || 'Sin arrendatario',
-        area: getArea(item.squareMeters) || item.area || 0,
+        area: parseDecimal(item.squareMeters) || item.area || 0,
         // Backend does not support type/status currently
       })) as Property[];
     },

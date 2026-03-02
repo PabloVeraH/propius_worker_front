@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useCommunity } from '@/context/CommunityContext';
@@ -12,6 +12,11 @@ export default function SelectCommunityPage() {
   const { setActiveCommunityId } = useCommunity();
   const router = useRouter();
   const [availableCommunities, setAvailableCommunities] = useState<CommunitySummary[]>([]);
+
+  const handleSelectCommunity = useCallback((communityId: string) => {
+    setActiveCommunityId(communityId);
+    router.push('/dashboard');
+  }, [setActiveCommunityId, router]);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -50,12 +55,7 @@ export default function SelectCommunityPage() {
         handleSelectCommunity(uniqueCommunities[0].id);
       }
     }
-  }, [user, isLoading, isAuthenticated, router]);
-
-  const handleSelectCommunity = (communityId: string) => {
-    setActiveCommunityId(communityId);
-    router.push('/dashboard');
-  };
+  }, [user, isLoading, isAuthenticated, router, handleSelectCommunity]);
 
   if (isLoading || !user) {
     return (

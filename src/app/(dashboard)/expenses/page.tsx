@@ -7,6 +7,7 @@ import { Plus, MoreHorizontal, Trash } from 'lucide-react';
 import { Menu, Transition } from '@headlessui/react';
 import { useExpenses } from '@/hooks/useExpenses';
 import { Expense } from '@/types/expense';
+import { parseDecimal } from '@/lib/utils';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -96,16 +97,9 @@ export default function ExpensesPage() {
       accessorKey: 'allocatedAmount',
       header: 'Monto',
       cell: ({ row }) => {
-        let val = row.original.allocatedAmount ?? row.original.amount;
-
-        if (typeof val === 'object' && val !== null && 'd' in val && Array.isArray((val as any).d)) {
-          const d = (val as any).d;
-          val = d[0];
-        }
-
-        if (val === undefined || val === null || isNaN(Number(val))) return '$ -';
-
-        const amount = parseFloat(val.toString());
+        const raw = row.original.allocatedAmount ?? row.original.amount;
+        const amount = parseDecimal(raw, -1);
+        if (amount === -1) return '$ -';
         return new Intl.NumberFormat('es-CO', {
           style: 'currency',
           currency: 'COP',
