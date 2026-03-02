@@ -8,6 +8,7 @@ import { Menu, Transition } from '@headlessui/react';
 import { useExpenses } from '@/hooks/useExpenses';
 import { Expense } from '@/types/expense';
 import { parseDecimal } from '@/lib/utils';
+import { formatCategory } from '@/lib/formatters';
 import { DataTable } from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -46,20 +47,10 @@ export default function ExpensesPage() {
         const category = row.original.category ||
           row.original.masterExpense?.category ||
           row.original.expense?.category;
-        if (!category) return '-';
-
-        const map: Record<string, string> = {
-          MAINTENANCE: 'Mantenimiento',
-          UTILITIES: 'Servicios Públicos',
-          SERVICES: 'Servicios',
-          INSURANCE: 'Seguros',
-          OTHER: 'Otros',
-        };
-        const catLabel = typeof category === 'string' ? category : (category as any).name || 'Categoría';
 
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-            {map[catLabel] || catLabel}
+            {formatCategory(category)}
           </span>
         );
       },

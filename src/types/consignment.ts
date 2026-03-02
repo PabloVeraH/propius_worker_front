@@ -24,3 +24,8 @@ export interface CreateConsignmentDTO {
   propertyId: string;
   categoryId: string;
 }
+
+export interface UpdateConsignmentDTO {
+  propertyId?: string;
+  categoryId?: string;
+}

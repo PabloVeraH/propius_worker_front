@@ -2,9 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Message, CreateMessageDTO } from '@/types/message';
 import { useCommunity } from '@/context/CommunityContext';
 import { useAuth } from '@/context/AuthContext';
-import { api } from '@/lib/api';
+import { messagesService } from '@/services/messages.service';
 import toast from 'react-hot-toast';
-import { useEffect } from 'react';
 // import io from 'socket.io-client';
 
 export function useMessages() {
@@ -29,19 +28,14 @@ export function useMessages() {
 
   const messagesQuery = useQuery({
     queryKey: ['messages', activeCommunityId],
-    queryFn: async () => {
-      if (!activeCommunityId) return [];
-      const { data } = await api.get<Message[]>(`/messages/community/${activeCommunityId}`);
-      return data;
-    },
+    queryFn: () =>
+      activeCommunityId ? messagesService.getByCommunity(activeCommunityId) : [],
     enabled: !!activeCommunityId,
   });
 
   const createMessageMutation = useMutation({
-    mutationFn: async (newMessage: CreateMessageDTO) => {
-      const { data } = await api.post<Message>('/messages', newMessage);
-      return data;
-    },
+    mutationFn: (newMessage: CreateMessageDTO) =>
+      messagesService.create(newMessage).then(r => r.data),
     onSuccess: (newMessage) => {
       queryClient.setQueryData(['messages', activeCommunityId], (old: Message[] = []) => [newMessage, ...old]);
       toast.success('Mensaje enviado');
@@ -51,12 +45,7 @@ export function useMessages() {
     },
   });
 
-  const rawData = messagesQuery.data;
-  const messages = Array.isArray(rawData)
-    ? rawData
-    : Array.isArray((rawData as any)?.data)
-    ? (rawData as any).data
-    : [];
+  const messages = messagesQuery.data ?? [];
 
   return {
     messages,

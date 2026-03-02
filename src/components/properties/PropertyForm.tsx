@@ -47,7 +47,7 @@ export function PropertyForm({ initialData, isEditing = false }: PropertyFormPro
       tenantName: initialData.tenant?.name || '',
       tenantEmail: initialData.tenant?.email || '',
       area: initialData.area || 0,
-    } as any : {
+    } : {
       name: '',
       ownerName: '',
       ownerEmail: '',
@@ -61,27 +61,26 @@ export function PropertyForm({ initialData, isEditing = false }: PropertyFormPro
     if (!activeCommunityId) return;
 
     try {
-      // Map form data to DTO
-      const commonData = {
+      const dto: CreatePropertyDTO = {
+        communityId: activeCommunityId,
         name: data.name,
         squareMeters: data.area,
-        ownerId: initialData?.ownerId, // Preserve ownerId if editing
+        ownerName: data.ownerName,
+        ownerEmail: data.ownerEmail || undefined,
+        tenantName: data.tenantName || undefined,
+        tenantEmail: data.tenantEmail || undefined,
+        ownerId: initialData?.ownerId,
       };
 
       if (isEditing && initialData) {
-        // This casting is a bit dangerous but temporary until DTO is fixed
-        await updateProperty({ id: initialData.id, data: { ...commonData, ...data } as any });
+        const { communityId: _communityId, ...updateDto } = dto;
+        await updateProperty({ id: initialData.id, data: updateDto });
       } else {
-        await createProperty({
-          communityId: activeCommunityId,
-          ...commonData,
-          // Force sending these even if DTO complains, or I will fix DTO next.
-          ...data
-        } as any);
+        await createProperty(dto);
       }
       router.push('/properties');
-    } catch (error) {
-      console.error('Error saving property', error);
+    } catch {
+      // Error toast is handled by the mutation's onError callback
     }
   };
 

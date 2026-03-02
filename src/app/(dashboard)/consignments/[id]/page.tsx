@@ -47,7 +47,6 @@ export default function EditConsignmentPage() {
       // Restore active community if missing
       const communityId = consignment.property?.communityId;
       if (!activeCommunityId && communityId) {
-        console.log('Restoring active community from consignment:', communityId);
         setActiveCommunityId(communityId);
       }
 
@@ -70,8 +69,8 @@ export default function EditConsignmentPage() {
     try {
       await updateConsignment({ id, data });
       router.push('/consignments');
-    } catch (error) {
-      console.error('Error updating consignment', error);
+    } catch {
+      // Error toast is handled by the mutation's onError callback
     }
   };
 

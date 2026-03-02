@@ -1,45 +1,27 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { Consignment, CreateConsignmentDTO, Category } from '@/types/consignment';
+import { CreateConsignmentDTO, UpdateConsignmentDTO } from '@/types/consignment';
 import { useCommunity } from '@/context/CommunityContext';
+import { consignmentsService } from '@/services/consignments.service';
 import toast from 'react-hot-toast';
-
-// Single source of truth for the consignments endpoint.
-// The backend uses '/consigments' (one 'n'). Change here to update everywhere.
-const CONSIGNMENTS_ENDPOINT = '/consigments';
 
 export function useConsignments() {
   const { activeCommunityId } = useCommunity();
   const queryClient = useQueryClient();
 
-  // Fetch Consignments
   const consignmentsQuery = useQuery({
     queryKey: ['consignments', activeCommunityId],
-    queryFn: async () => {
-      if (!activeCommunityId) return [];
-      const response = await api.get<any>(CONSIGNMENTS_ENDPOINT);
-      const rawData = response.data?.data || response.data;
-      return Array.isArray(rawData) ? rawData : [];
-    },
+    queryFn: () => (activeCommunityId ? consignmentsService.getAll() : []),
     enabled: !!activeCommunityId,
   });
 
-  // Fetch Categories for the dropdown
   const categoriesQuery = useQuery({
     queryKey: ['categories'],
-    queryFn: async () => {
-      const response = await api.get<any>('/categories');
-      const rawData = response.data?.data || response.data;
-      return Array.isArray(rawData) ? rawData : [];
-    },
+    queryFn: () => consignmentsService.getCategories(),
   });
 
-  // Create Consignment
   const createConsignmentMutation = useMutation({
-    mutationFn: async (newConsignment: CreateConsignmentDTO) => {
-      const { data } = await api.post<Consignment>(CONSIGNMENTS_ENDPOINT, newConsignment);
-      return data;
-    },
+    mutationFn: (dto: CreateConsignmentDTO) =>
+      consignmentsService.create(dto).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
       toast.success('Consignación registrada exitosamente');
@@ -49,11 +31,8 @@ export function useConsignments() {
     },
   });
 
-  // Delete Consignment
   const deleteConsignmentMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`${CONSIGNMENTS_ENDPOINT}/${id}`);
-    },
+    mutationFn: (id: string) => consignmentsService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
       toast.success('Consignación eliminada exitosamente');
@@ -63,12 +42,9 @@ export function useConsignments() {
     },
   });
 
-  // Update Consignment
   const updateConsignmentMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: any }) => {
-      const res = await api.patch(`${CONSIGNMENTS_ENDPOINT}/${id}`, data);
-      return res.data;
-    },
+    mutationFn: ({ id, data }: { id: string; data: UpdateConsignmentDTO }) =>
+      consignmentsService.update(id, data).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['consignments'] });
       toast.success('Consignación actualizada exitosamente');
@@ -91,10 +67,7 @@ export function useConsignments() {
 export function useConsignment(id: string) {
   const query = useQuery({
     queryKey: ['consignment', id],
-    queryFn: async () => {
-      const response = await api.get<any>(`${CONSIGNMENTS_ENDPOINT}/${id}`);
-      return response.data?.data || response.data;
-    },
+    queryFn: () => consignmentsService.getById(id),
     enabled: !!id,
   });
 

@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
 import { User, LoginCredentials, AuthResponse } from '@/types/auth';
+import { authService } from '@/services/auth.service';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -28,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         try {
           // Verify token against the server and get up-to-date user info
-          const { data } = await api.get<User>('/auth/me');
+          const { data } = await authService.me();
           setUser(data);
         } catch (error) {
           // Token is invalid or expired — clear session and redirect
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      const response = await api.post<any>('/auth/login', credentials);
+      const response = await authService.login(credentials);
       const rawData = response.data;
 
       // Handle potential nested data structure and snake_case properties
@@ -94,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         toast.error('No tienes comunidades asignadas.');
       }
     } catch (error) {
-      console.error('Login failed', error);
       toast.error('Error al iniciar sesión');
       throw error;
     }

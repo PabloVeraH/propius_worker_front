@@ -1,30 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { Property, CreatePropertyDTO, UpdatePropertyDTO } from '@/types/property';
+import { CreatePropertyDTO, UpdatePropertyDTO } from '@/types/property';
 import { useCommunity } from '@/context/CommunityContext';
-import { parseDecimal } from '@/lib/utils';
+import { propertiesService } from '@/services/properties.service';
 import toast from 'react-hot-toast';
-
-// Mock data updated
-const MOCK_PROPERTIES: Property[] = [
-  {
-    id: '1',
-    communityId: '1',
-    name: 'Departamento 101',
-    address: 'Apto 101',
-    ownerName: 'Juan Pérez',
-    tenantName: 'Pedro Almodovar',
-    area: 85,
-  },
-  {
-    id: '2',
-    communityId: '1',
-    name: 'Departamento 102',
-    address: 'Apto 102',
-    ownerName: 'María García',
-    area: 90,
-  },
-];
 
 export function useProperties() {
   const { activeCommunityId } = useCommunity();
@@ -32,33 +10,14 @@ export function useProperties() {
 
   const propertiesQuery = useQuery({
     queryKey: ['properties', activeCommunityId],
-    queryFn: async () => {
-      if (!activeCommunityId) return [];
-      // The API returns { data: Property[] } structure based on the issue description
-      const response = await api.get<any>(`/properties/community/${activeCommunityId}`);
-
-      const rawData = response.data.data || response.data; // Handle wrapped or unwrapped
-
-      if (!Array.isArray(rawData)) return [];
-
-      return rawData.map((item: any) => ({
-        ...item,
-        name: item.name || item.address || 'Sin nombre',
-        address: item.address || item.name || '',
-        ownerName: item.owner?.name || item.ownerName || 'Sin propietario',
-        tenantName: item.tenant?.name || item.tenantName || (item.tenant ? item.tenant.email : '') || 'Sin arrendatario',
-        area: parseDecimal(item.squareMeters) || item.area || 0,
-        // Backend does not support type/status currently
-      })) as Property[];
-    },
+    queryFn: () =>
+      activeCommunityId ? propertiesService.getByCommunity(activeCommunityId) : [],
     enabled: !!activeCommunityId,
   });
 
   const createPropertyMutation = useMutation({
-    mutationFn: async (newProperty: CreatePropertyDTO) => {
-      const { data } = await api.post<Property>('/properties', newProperty);
-      return data;
-    },
+    mutationFn: (dto: CreatePropertyDTO) =>
+      propertiesService.create(dto).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       toast.success('Propiedad creada exitosamente');
@@ -69,10 +28,8 @@ export function useProperties() {
   });
 
   const updatePropertyMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: UpdatePropertyDTO }) => {
-      const { data: res } = await api.patch<Property>(`/properties/${id}`, data);
-      return res;
-    },
+    mutationFn: ({ id, data }: { id: string; data: UpdatePropertyDTO }) =>
+      propertiesService.update(id, data).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       toast.success('Propiedad actualizada exitosamente');
@@ -83,9 +40,7 @@ export function useProperties() {
   });
 
   const deletePropertyMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`/properties/${id}`);
-    },
+    mutationFn: (id: string) => propertiesService.remove(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       toast.success('Propiedad eliminada exitosamente');
@@ -107,10 +62,7 @@ export function useProperties() {
 export function useProperty(id: string) {
   return useQuery({
     queryKey: ['property', id],
-    queryFn: async () => {
-      const { data } = await api.get<Property>(`/properties/${id}`);
-      return data;
-    },
+    queryFn: () => propertiesService.getById(id).then(r => r.data),
     enabled: !!id,
   });
 }
